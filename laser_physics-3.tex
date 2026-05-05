@@ -1,0 +1,571 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx} % Required for inserting images
+
+\usepackage{fancyhdr}
+\usepackage{}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\pagestyle{fancy}
+\fancyhead{}
+\fancyhead[LH]{}
+\fancyhead[CH]{}
+\fancyhead[RH]{}
+
+\title{laser physics}
+\author{a43nigam }
+\date{April 2026}
+
+\begin{document}
+
+
+\subsection{Beam Model}
+
+\[
+\ln I(x,y)
+=
+\ln I_{\max}
+-
+\frac{1}{2}d^T A d
+\]
+
+\[
+\ln I(x,y)
+=
+C_0
++
+C_1x
++
+C_2y
++
+C_3x^2
++
+C_4xy
++
+C_5y^2
+\]
+
+\[
+C=
+\begin{bmatrix}
+C_0\\
+C_1\\
+C_2\\
+\vdots
+\end{bmatrix},
+\qquad
+X=
+\begin{bmatrix}
+\vdots
+\end{bmatrix}
+\]
+
+6 constants means 6 sensors.
+
+If we try to use \(C_0\) to normalize all other sensor readings, you consume that leaving us with one less sensor.
+
+We need at least 6 sensors for 6 coefficients.
+
+\subsection{Measurement Model}
+
+Given \(N\) photodiode measurements: each sensor has irradiance \(z_i\).
+
+Gaussian noise:
+\[
+\mathcal{N}(0,\sigma_i^2)
+\quad \text{per sensor } i
+\]
+
+\[
+z_i = I_i + \mathcal{N}(0,\sigma_i^2)
+\]
+
+\[
+\downarrow
+\]
+
+Depends on:
+\[
+\rho, q, A, w_{\text{eff}}, x_0, y_0
+\]
+
+\subsection{Likelihood of Sensor Readings}
+
+So we want to get the probability of finding sensor reading \(z\) given a set of beam parameters. We can work backward from there.
+
+Beam state \(n\rightarrow\) all the \(I\) parameters.
+
+\[
+p(z\mid n)
+=
+\text{sum of probability density functions for all sensor readings } z_i
+\]
+
+Normal PDF:
+
+\[
+f(x)
+=
+\frac{1}{\sqrt{2\pi\sigma^2}}
+e^{-\frac{(x-\mu)^2}{2\sigma^2}}
+\]
+
+But for us:
+\[
+x=z,
+\qquad
+\mu = I
+\]
+
+So:
+\[
+p_i(z\mid n)
+=
+\frac{1}{\sigma_i\sqrt{2\pi}}
+e^{-\frac{(z_i-I_i)^2}{2\sigma_i^2}}
+\]
+
+Since each term is small and hard to get:
+
+\[
+p(z\mid n)
+=
+\prod_{i=1}^{N}
+\left(
+\frac{1}{\sigma_i\sqrt{2\pi}}
+e^{-\frac{(z_i-I_i)^2}{2\sigma_i^2}}
+\right)
+\]
+
+So we want to maximize the likelihood.
+
+Likelihood of \(N\) voltages \(z_i\), given some beam state.
+
+Get rid of \(e^x\) with \(\ln\):
+
+\[
+\ln p(z\mid n)
+=
+\sum_{i=1}^{N}
+\ln\left[
+\frac{1}{\sigma_i\sqrt{2\pi}}
+e^{-\frac{(z_i-I_i)^2}{2\sigma_i^2}}
+\right]
+\]
+
+\[
+\ln p(z\mid n)
+=
+\sum_{i=1}^{N}
+\left[
+\ln\left(\frac{1}{\sigma_i\sqrt{2\pi}}\right)
+-
+\frac{(z_i-I_i)^2}{2\sigma_i^2}
+\right]
+\]
+
+Depends on constants:
+
+\[
+\ln p(z\mid n)
+=
+C
+-
+\frac{1}{2}
+\sum_{i=1}^{N}
+\frac{(z_i-I_i)^2}{\sigma_i^2}
+\]
+
+So we just need to minimize:
+
+\[
+J(n)
+=
+\min_n
+\left[
+\sum_{i=1}^{N}
+\left(
+\frac{z_i-I_i(n)}{\sigma_i}
+\right)^2
+\right]
+\]
+
+\subsection{Fisher matrix}
+
+we want to find spots where change in probability is minimized because thats a local minimum. that gives us a score function
+
+\begin{equation}
+    V(n) = \nabla_n ln p(z|n)
+\end{equation}
+
+and the fisher information matrix is $\equiv \mathbb{E}(V(n) \cdot V(n))$
+
+so 
+
+\begin{equation}
+    F = -\mathbb{E}(\nabla_n^2 ln(p(z|n))
+\end{equation}
+
+which is the stdv of the curvature of the probability function
+
+substituting $p(z|n)$ we get 
+
+\begin{equation}
+    \nabla^2 lnp(z|n) \rightarrow 
+    \frac{\partial}{\partial n} \left( \frac{\partial}{\partial n} ln(p(z|n)) \right)
+\end{equation}
+
+\[
+\frac{\partial^2 p}{\partial n_a \partial n_b}
+=
+\sum_{i=1}^{N}
+\frac{1}{\sigma_i^2}
+\left(
+-\frac{\partial I_i}{\partial n_a}
+\frac{\partial I_i}{\partial n_b}
++
+(z_i-I_i(n))
+\frac{\partial^2 I_i}{\partial n_a \partial n_b}
+\right)
+\]
+
+6 parameters \(\rightarrow\) with each one twice:
+
+\[
+6\times 6 \text{ matrix}
+\]
+
+\[
+(z_i-I_i(n))=\mathcal{N}(0,\sigma_i^2)
+\]
+
+Gaussian noise, so the rightmost term in the summation is 0.
+
+So:
+
+\[
+F_{ab}
+=
+\sum_{i=1}^{N}
+\frac{1}{\sigma_i^2}
+\frac{\partial I_i}{\partial n_a}
+\frac{\partial I_i}{\partial n_b}
+\]
+
+\[
+F_{ab}=p
+\]
+
+\[
+F_{ab}
+=
+\sum_{i=1}^{N}
+\frac{1}{\sigma_i^2}
+\begin{bmatrix}
+\frac{\partial I_i}{\partial x_0}\frac{\partial I_i}{\partial x_0}
+&
+\frac{\partial I_i}{\partial x_0}\frac{\partial I_i}{\partial y_0}
+&
+\frac{\partial I_i}{\partial x_0}\frac{\partial I_i}{\partial q}
+&
+\frac{\partial I_i}{\partial x_0}\frac{\partial I_i}{\partial \rho}
+&
+\frac{\partial I_i}{\partial x_0}\frac{\partial I_i}{\partial w_{\text{eff}}}
+&
+\frac{\partial I_i}{\partial x_0}\frac{\partial I_i}{\partial A}
+\\[1.2em]
+\frac{\partial I_i}{\partial y_0}\frac{\partial I_i}{\partial x_0}
+&
+\frac{\partial I_i}{\partial y_0}\frac{\partial I_i}{\partial y_0}
+&
+\frac{\partial I_i}{\partial y_0}\frac{\partial I_i}{\partial q}
+&
+\frac{\partial I_i}{\partial y_0}\frac{\partial I_i}{\partial \rho}
+&
+\frac{\partial I_i}{\partial y_0}\frac{\partial I_i}{\partial w_{\text{eff}}}
+&
+\frac{\partial I_i}{\partial y_0}\frac{\partial I_i}{\partial A}
+\\[1.2em]
+\frac{\partial I_i}{\partial q}\frac{\partial I_i}{\partial x_0}
+&
+\frac{\partial I_i}{\partial q}\frac{\partial I_i}{\partial y_0}
+&
+\frac{\partial I_i}{\partial q}\frac{\partial I_i}{\partial q}
+&
+\frac{\partial I_i}{\partial q}\frac{\partial I_i}{\partial \rho}
+&
+\frac{\partial I_i}{\partial q}\frac{\partial I_i}{\partial w_{\text{eff}}}
+&
+\frac{\partial I_i}{\partial q}\frac{\partial I_i}{\partial A}
+\\[1.2em]
+\frac{\partial I_i}{\partial \rho}\frac{\partial I_i}{\partial x_0}
+&
+\frac{\partial I_i}{\partial \rho}\frac{\partial I_i}{\partial y_0}
+&
+\frac{\partial I_i}{\partial \rho}\frac{\partial I_i}{\partial q}
+&
+\frac{\partial I_i}{\partial \rho}\frac{\partial I_i}{\partial \rho}
+&
+\frac{\partial I_i}{\partial \rho}\frac{\partial I_i}{\partial w_{\text{eff}}}
+&
+\frac{\partial I_i}{\partial \rho}\frac{\partial I_i}{\partial A}
+\\[1.2em]
+\frac{\partial I_i}{\partial w_{\text{eff}}}\frac{\partial I_i}{\partial x_0}
+&
+\frac{\partial I_i}{\partial w_{\text{eff}}}\frac{\partial I_i}{\partial y_0}
+&
+\frac{\partial I_i}{\partial w_{\text{eff}}}\frac{\partial I_i}{\partial q}
+&
+\frac{\partial I_i}{\partial w_{\text{eff}}}\frac{\partial I_i}{\partial \rho}
+&
+\frac{\partial I_i}{\partial w_{\text{eff}}}\frac{\partial I_i}{\partial w_{\text{eff}}}
+&
+\frac{\partial I_i}{\partial w_{\text{eff}}}\frac{\partial I_i}{\partial A}
+\\[1.2em]
+\frac{\partial I_i}{\partial A}\frac{\partial I_i}{\partial x_0}
+&
+\frac{\partial I_i}{\partial A}\frac{\partial I_i}{\partial y_0}
+&
+\frac{\partial I_i}{\partial A}\frac{\partial I_i}{\partial q}
+&
+\frac{\partial I_i}{\partial A}\frac{\partial I_i}{\partial \rho}
+&
+\frac{\partial I_i}{\partial A}\frac{\partial I_i}{\partial w_{\text{eff}}}
+&
+\frac{\partial I_i}{\partial A}\frac{\partial I_i}{\partial A}
+\end{bmatrix}
+\]
+
+Diagonal gives pure sensitivity to one variable.
+
+Even if power, center, etc. are not really relevant, we must take them into account because of nondirectional terms.
+
+If we only care about \(\rho,q\), partition \(\bar{F}\) into
+\[
+\{p,q\}\in \alpha
+\qquad \text{and} \qquad
+\{w_{\text{eff}},x_0,y_0,A\}\in \beta .
+\]
+
+\[
+\bar{F}
+=
+\begin{bmatrix}
+F_{\alpha\alpha} & F_{\alpha\beta} \\
+F_{\beta\alpha} & F_{\beta\beta}
+\end{bmatrix}
+\]
+
+\[
+F_{\text{direction}}
+=
+F_{\alpha\alpha}
+-
+F_{\alpha\beta}F_{\beta\beta}^{-1}F_{\beta\alpha}
+\]
+
+Wikipedia says Cramer--Rao lower bound makes it so we need to maximize \(F_{\text{dir}}\).
+
+\subsection{Sensor Configuration Optimization}
+
+So let's choose sensor configuration which maximizes probability given our operational domain.
+
+\[
+\text{range}\in [500,3000]~\mathrm{m}
+\qquad
+\text{angle}\in [0,60^\circ]
+\]
+
+Beam center:
+\[
+(x_0,y_0)\in \text{uniform around center}
+\]
+
+Optimize for expected value of beam over sweeping all the ranges.
+
+Objective:
+
+\[
+\max_N \int \log \det \left(\frac{N}{n}\right)\Gamma(n)\,dn
+\]
+
+Monte Carlo:
+
+\[
+\max \frac{1}{M}\sum_{m=1}^{M}
+\log \det F_{\text{direction}}\left(N \mid n^{(m)}\right)
+\]
+
+On a single face, we can restrict sensors:
+
+\[
+\text{face } \Omega \rightarrow (x_i,y_i,z_i) \in \Omega
+\]
+
+Minimum spacing:
+
+\[
+\|r_i-r_j\| \geq d_{\min}
+\]
+
+For multiple faces on the drone, just add more sensors with their own constraints.
+
+
+So lets actually define what those constraints will then be:
+
+\subsubsection{sensors on a single plane}
+
+lets say our drone face is 30x20cm (x, y) so we can define the center as the origin and constrain 
+\begin{equation}
+-15 \leq x_i \leq 15, \quad -10 \leq y_i \leq 10, \quad  z_i=0.
+\end{equation}
+
+Sensor configurations to consider are probabaly:
+\begin{itemize}
+    \item 1 sensor in the center, a circular ring of N-1 sensors around it at various radii
+    \item 1 sensor in the center, a rectangular ring of sensors around it at various distances
+    \item circular/square rings of sensors without one in the center
+    \item sensors evenly spaced across the surface in a grid
+\end{itemize}
+
+it might be worth doing trials for all of these, then interpolating to see if there is a 'global minimum' in between some of the most promising configurations.
+
+\subsubsection{sensors on multiple planes}
+
+if we want to consider multiple planes, we define a set of faces $\{F_1, F_2, F_3, ...\}$ and the constraint is a union of those domains. Each sensor must belong to only one face
+
+\begin{equation}
+    r_i \in \bigcup_k F_k
+\end{equation}
+
+for our code it probably makes most sense to parameterize faces separately.
+
+
+
+\subsection{OD filter optimization}
+
+OD filter optimization generally does not seem to be coupled to our sensor location optimization, which is good because we can then do them separately and not deal with added complexity there. The exception to this may be if OD filters cause irradiance to fall below the noise floor of a sensor $\sigma_i$, so we just need to add that as a constraint when doing OD filter optimization.
+
+
+% \section{Photodiode Responsivity, Filtering, and Saturation}
+
+% The preceding derivations assumed that each photodiode measures irradiance
+% directly. In reality, a photodiode produces a current proportional to incident
+% optical power. If the photodiode has active area $A_d$, responsivity
+% $\mathcal{R}(\lambda)$, optical filter transmission $T_f(\lambda)$, and angular
+% response $G(\gamma)$, then the expected photocurrent is
+% \begin{equation}
+%     \mu_i
+%     =
+%     \mathcal{R}(\lambda)
+%     T_f(\lambda)
+%     G(\gamma)
+%     A_d
+%     \tilde{I}(x_i,y_i;\eta).
+% \end{equation}
+% More generally, if the filter transmission is angle-dependent,
+% \begin{equation}
+%     \mu_i
+%     =
+%     \mathcal{R}(\lambda)
+%     T_f(\lambda,\gamma)
+%     G(\gamma)
+%     A_d
+%     \tilde{I}(x_i,y_i;\eta).
+% \end{equation}
+
+% The measured current can then be modeled as
+% \begin{equation}
+%     z_i = \mu_i + i_{\mathrm{dark}} + \epsilon_i.
+% \end{equation}
+% The noise variance is not always constant. A more realistic approximation
+% includes electronic noise and shot noise:
+% \begin{equation}
+%     \sigma_i^2
+%     =
+%     \sigma_{\mathrm{elec}}^2
+%     +
+%     2q_e B_{\mathrm{elec}}
+%     \left(
+%         \mu_i + i_{\mathrm{dark}}
+%     \right),
+% \end{equation}
+% where $q_e$ is the elementary charge and $B_{\mathrm{elec}}$ is the electronic
+% bandwidth. This model is important because high irradiance improves signal, but
+% also increases shot noise and may drive the photodiode or amplifier into
+% saturation.
+
+% A simple saturation model is
+% \begin{equation}
+%     z_i
+%     =
+%     \min(\mu_i, z_{\mathrm{sat}}) + \epsilon_i.
+% \end{equation}
+% Saturated sensors should not be treated as ordinary linear measurements. In the
+% estimator, they can either be excluded, down-weighted, or modeled as censored
+% observations satisfying
+% \begin{equation}
+%     \mu_i \geq z_{\mathrm{sat}}.
+% \end{equation}
+
+% Optical filters will therefore enter the optimization in two competing ways.
+% Increasing attenuation prevents saturation, but it also reduces the signal-to-noise
+% ratio in low-intensity regions of the beam footprint. The optimal filter is the
+% one that maximizes direction information subject to saturation and noise
+% constraints:
+% \begin{equation}
+%     T_f^{\star}
+%     =
+%     \arg\max_{T_f}
+%     \mathbb{E}_{\eta \sim \Pi}
+%     \left[
+%         \log \det F_{\mathrm{dir}}(T_f,\mathcal{L};\eta)
+%     \right].
+% \end{equation}
+
+% \section{Extension to Multiple Planar Faces}
+
+% The single-plane framework provides the core mathematical machinery, but it has
+% limited ability to distinguish tilt from translation and contains a fundamental
+% in-plane sign ambiguity. The next stage is to place sensors on multiple surfaces
+% with different outward normals.
+
+% Let the drone have $J$ planar faces. Each face $j$ has outward normal
+% $\hat{n}_j$ and local tangent basis vectors $\hat{u}_j$ and $\hat{v}_j$. A point
+% on face $j$ can be written as
+% \begin{equation}
+%     \mathbf{r}_{j}(x,y)
+%     =
+%     \mathbf{r}_{j,0}
+%     +
+%     x\hat{u}_j
+%     +
+%     y\hat{v}_j.
+% \end{equation}
+% For a global beam direction $\hat{k}$, the local incidence angle on face $j$ is
+% \begin{equation}
+%     \cos \gamma_j
+%     =
+%     \hat{k} \cdot \hat{n}_j.
+% \end{equation}
+% Only faces satisfying
+% \begin{equation}
+%     \hat{k}\cdot\hat{n}_j > 0
+% \end{equation}
+% are directly illuminated. For each illuminated face, the local beam footprint can
+% be modeled using the same planar equations derived above, after projecting the
+% global beam direction into the local coordinates of that face.
+
+% Since independent measurements contribute additively to Fisher information, the
+% total Fisher Information Matrix for the full multi-face sensor system is
+% \begin{equation}
+%     F_{\mathrm{total}}
+%     =
+%     \sum_{j=1}^{J}
+%     F_j.
+% \end{equation}
+% The multi-face system is therefore expected to outperform a single plane because
+% it samples the beam using several non-parallel surface normals. This helps break
+% the degeneracy between beam center, beam width, amplitude, and direction, and
+% it can also resolve the sign ambiguity that exists for a single planar footprint.
+
+\end{document}

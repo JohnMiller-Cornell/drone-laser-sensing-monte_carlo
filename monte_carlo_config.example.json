@@ -1,0 +1,45 @@
+{
+  "monte_carlo": {
+    "samples": 256,
+    "seed": 0,
+    "min_active": 6
+  },
+  "distribution": {
+    "range_min_m": 500.0,
+    "range_max_m": 3000.0,
+    "angle_max_deg": 60.0,
+    "target_half_extents_m": [0.15, 0.1, 0.0],
+    "uniform_solid_angle": true
+  },
+  "beam": {
+    "wavelength_nm": 1064.0,
+    "m2": 1.2,
+    "beam_waist_m": 0.05,
+    "initial_power_w": 10000.0,
+    "visibility_km": 20.0,
+    "cn2": 0.0
+  },
+  "sensor": {
+    "noise_floor_w_per_m2": 1.0,
+    "relative_noise_fraction": 0.0,
+    "optical_density": 0.0,
+    "saturation_limit_w_per_m2": "inf",
+    "require_above_noise_floor": false
+  },
+  "score": {
+    "layouts_path": "layouts.json",
+    "layout_family": "default",
+    "sensor_count": 9
+  },
+  "optimize": {
+    "n": 12,
+    "lx_m": 0.3,
+    "ly_m": 0.2,
+    "lz_m": 0.08,
+    "minimum_spacing_m": 0.02,
+    "generations": 40,
+    "popsize": 10,
+    "family": "optimized_mc",
+    "save": false
+  }
+}
