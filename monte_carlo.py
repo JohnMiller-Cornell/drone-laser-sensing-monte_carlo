@@ -135,6 +135,7 @@ class MonteCarloScore:
     mean_valid_logdet: float
     std_valid_logdet: float
     valid_fraction: float
+    any_active_fraction: float
     mean_active_sensor_count: float
     mean_saturated_sensor_count: float
     mean_below_noise_sensor_count: float
@@ -155,24 +156,32 @@ class LayoutOptimizationResult:
 
 
 def beam_direction_from_angles(theta_rad: float, phi_rad: float) -> np.ndarray:
-    """Convert polar angle from +z and azimuth into a unit direction vector."""
-    return np.array(
-        [
-            np.sin(theta_rad) * np.cos(phi_rad),
-            np.sin(theta_rad) * np.sin(phi_rad),
-            np.cos(theta_rad),
-        ],
-        dtype=float,
-    )
+    """Convert signed pitch/yaw projection angles into a unit direction vector."""
+    tan_phi = np.tan(phi_rad)
+    tan_theta = np.tan(theta_rad)
+    vector = np.array([tan_phi, tan_theta, 1.0], dtype=float)
+    return vector / np.linalg.norm(vector)
 
 
 def angles_from_beam_direction(direction: np.ndarray) -> tuple[float, float]:
-    """Convert a unit direction vector into polar angle and azimuth."""
+    """Convert a unit direction vector into signed pitch/yaw projection angles."""
     unit = np.asarray(direction, dtype=float)
     unit = unit / np.linalg.norm(unit)
-    theta = float(np.arccos(np.clip(unit[2], -1.0, 1.0)))
-    phi = float(np.arctan2(unit[1], unit[0]))
+    theta = float(np.arctan2(unit[1], unit[2]))
+    phi = float(np.arctan2(unit[0], unit[2]))
     return theta, phi
+
+
+def _direction_from_incidence_azimuth(incidence_rad: float, azimuth_rad: float) -> np.ndarray:
+    """Sample a direction on the incidence cone, then convert to signed pitch/yaw later."""
+    return np.array(
+        [
+            np.sin(incidence_rad) * np.cos(azimuth_rad),
+            np.sin(incidence_rad) * np.sin(azimuth_rad),
+            np.cos(incidence_rad),
+        ],
+        dtype=float,
+    )
 
 
 def propagate_nominal_beam(range_m: float, beam: BeamConfig) -> tuple[float, float, float]:
@@ -217,12 +226,13 @@ def sample_scenarios(
     for _ in range(monte_carlo.sample_count):
         range_m = float(rng.uniform(distribution.range_min_m, distribution.range_max_m))
         if distribution.uniform_solid_angle:
-            cos_theta = float(rng.uniform(np.cos(distribution.max_incidence_angle_rad), 1.0))
-            theta_rad = float(np.arccos(cos_theta))
+            cos_incidence = float(rng.uniform(np.cos(distribution.max_incidence_angle_rad), 1.0))
+            incidence_rad = float(np.arccos(cos_incidence))
         else:
-            theta_rad = float(rng.uniform(0.0, distribution.max_incidence_angle_rad))
-        phi_rad = float(rng.uniform(-np.pi, np.pi))
-        direction = beam_direction_from_angles(theta_rad, phi_rad)
+            incidence_rad = float(rng.uniform(0.0, distribution.max_incidence_angle_rad))
+        azimuth_rad = float(rng.uniform(-np.pi, np.pi))
+        direction = _direction_from_incidence_azimuth(incidence_rad, azimuth_rad)
+        theta_rad, phi_rad = angles_from_beam_direction(direction)
         target = rng.uniform(-half_extents, half_extents)
         origin = target - range_m * direction
         effective_radius_m, transmitted_power_w, peak_irradiance_w_per_m2 = propagate_nominal_beam(range_m, beam)
@@ -414,6 +424,7 @@ def score_layout(
     valid_logdets = logdets[valid]
     mean_valid_logdet = float(np.mean(valid_logdets)) if valid_logdets.size else float("nan")
     std_valid_logdet = float(np.std(valid_logdets)) if valid_logdets.size else float("nan")
+    any_active_fraction = float(np.mean(active_counts > 0.0))
 
     return MonteCarloScore(
         mean_logdet=float(np.mean(logdets)),
@@ -421,6 +432,7 @@ def score_layout(
         mean_valid_logdet=mean_valid_logdet,
         std_valid_logdet=std_valid_logdet,
         valid_fraction=float(np.mean(valid)),
+        any_active_fraction=any_active_fraction,
         mean_active_sensor_count=float(np.mean(active_counts)),
         mean_saturated_sensor_count=float(np.mean(saturated_counts)),
         mean_below_noise_sensor_count=float(np.mean(below_noise_counts)),

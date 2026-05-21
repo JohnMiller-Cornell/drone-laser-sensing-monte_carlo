@@ -13,6 +13,8 @@ venv/
 *.xls
 
 monte_carlo_results*/
+monte_carlo_layout_lab_last_run.json
+monte_carlo_layout_lab_last_results.json
 
 # Generated from laser_physics-3.tex.
 laser_physics-3.pdf

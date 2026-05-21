@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -228,6 +229,8 @@ def optimize_face_layout(
     generations: int,
     popsize: int,
     seed: int,
+    objective_fn: Callable[[PhotodiodeArray], float] | None = None,
+    objective_label: str = "logdet",
 ) -> TrialResult:
     bounds = [(0.0, 1.0), (0.0, 1.0)] * sensor_count
     if len(faces) > 1:
@@ -235,8 +238,12 @@ def optimize_face_layout(
 
     def objective(vector: np.ndarray) -> float:
         photodiodes = layout_from_vector(vector, sensor_count, faces)
-        score = score_layout(photodiodes, train_scenarios, sensor_noise, train_mc)
-        return -score.mean_logdet + spacing_penalty(photodiodes, minimum_spacing_m, scale=1e8)
+        if objective_fn is None:
+            score = score_layout(photodiodes, train_scenarios, sensor_noise, train_mc)
+            base_objective = -score.mean_logdet
+        else:
+            base_objective = float(objective_fn(photodiodes))
+        return base_objective + spacing_penalty(photodiodes, minimum_spacing_m, scale=1e8)
 
     result = differential_evolution(
         objective,
@@ -259,7 +266,7 @@ def optimize_face_layout(
         eval_score=eval_score,
         objective_value=float(result.fun),
         optimizer_success=bool(result.success),
-        optimizer_message=str(result.message),
+        optimizer_message=f"{objective_label}:{result.message}",
         iterations=int(result.nit),
         photodiodes=photodiodes,
         minimum_spacing_m=minimum_spacing_m,
@@ -279,14 +286,20 @@ def optimize_multi_face_per_face_layout(
     generations: int,
     popsize: int,
     seed: int,
+    objective_fn: Callable[[PhotodiodeArray], float] | None = None,
+    objective_label: str = "logdet",
 ) -> TrialResult:
     total_sensors = sensors_per_face * len(faces)
     bounds = [(0.0, 1.0), (0.0, 1.0)] * total_sensors
 
     def objective(vector: np.ndarray) -> float:
         photodiodes = layout_from_vector_fixed_faces(vector, sensors_per_face, faces)
-        score = score_layout(photodiodes, train_scenarios, sensor_noise, train_mc)
-        return -score.mean_logdet + spacing_penalty(photodiodes, minimum_spacing_m, scale=1e8)
+        if objective_fn is None:
+            score = score_layout(photodiodes, train_scenarios, sensor_noise, train_mc)
+            base_objective = -score.mean_logdet
+        else:
+            base_objective = float(objective_fn(photodiodes))
+        return base_objective + spacing_penalty(photodiodes, minimum_spacing_m, scale=1e8)
 
     result = differential_evolution(
         objective,
@@ -309,7 +322,7 @@ def optimize_multi_face_per_face_layout(
         eval_score=eval_score,
         objective_value=float(result.fun),
         optimizer_success=bool(result.success),
-        optimizer_message=str(result.message),
+        optimizer_message=f"{objective_label}:{result.message}",
         iterations=int(result.nit),
         photodiodes=photodiodes,
         minimum_spacing_m=minimum_spacing_m,
